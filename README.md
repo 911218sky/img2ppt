@@ -6,7 +6,7 @@ Automatically convert images from a folder into PowerPoint presentation files.
 
 ### Method 1: Download Executable (Recommended)
 Download portable executable directly:
-👉 **[Click here to download](https://github.com/911218sky/mc-menu-picker/releases/tag/V1)**
+👉 **[Click here to download](https://github.com/911218sky/img2ppt/releases/tag/V1)**
 
 Run directly after download, no Python installation required.
 
