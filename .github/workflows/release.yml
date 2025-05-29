@@ -1,0 +1,126 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # Trigger on tags like v1.0.0, v1.2.3
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+        python-version: ['3.11']
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller
+        pip install -r requirements.txt
+
+    - name: Build executable (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        pyinstaller --onefile --name img2ppt-windows src/main.py
+        
+    - name: Build executable (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        pyinstaller --onefile --name img2ppt-linux src/main.py
+        
+    - name: Build executable (macOS)
+      if: matrix.os == 'macos-latest'
+      run: |
+        pyinstaller --onefile --name img2ppt-macos src/main.py
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: img2ppt-${{ matrix.os }}
+        path: |
+          dist/img2ppt-windows.exe
+          dist/img2ppt-linux
+          dist/img2ppt-macos
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Download all artifacts
+      uses: actions/download-artifact@v3
+      
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref_name }}
+        release_name: img2ppt ${{ github.ref_name }}
+        body: |
+          ## 📦 img2ppt ${{ github.ref_name }}
+          
+          ### New Features and Improvements
+          - Automatic numeric sorting by filename
+          - Supports 16:9 slide aspect ratio
+          - Maintains original image resolution
+          - Supports multiple image formats (JPG, PNG, GIF, BMP, TIFF)
+          
+          ### Download Instructions
+          - **Windows**: Download `img2ppt-windows.exe`
+          - **Linux**: Download `img2ppt-linux`
+          - **macOS**: Download `img2ppt-macos`
+          
+          ### Usage
+          ```
+          # Run the program and follow the prompt to enter the image folder path
+          ./img2ppt-windows.exe
+          ```
+        draft: false
+        prerelease: false
+
+    - name: Upload Windows executable
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./img2ppt-windows-latest/img2ppt-windows.exe
+        asset_name: img2ppt-windows.exe
+        asset_content_type: application/octet-stream
+
+    - name: Upload Linux executable
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./img2ppt-ubuntu-latest/img2ppt-linux
+        asset_name: img2ppt-linux
+        asset_content_type: application/octet-stream
+
+    - name: Upload macOS executable
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./img2ppt-macos-latest/img2ppt-macos
+        asset_name: img2ppt-macos
+        asset_content_type: application/octet-stream
