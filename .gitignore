@@ -7,3 +7,9 @@ __pycache__/
 
 img2ppt.spec
 *.pptx
+*.exe
+*.dmg
+*.deb
+*.rpm
+*.tar.gz
+*.zip
