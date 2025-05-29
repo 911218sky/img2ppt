@@ -3,5 +3,7 @@
 /data/*
 /build/*
 /dist/*
+__pycache__/
 
 img2ppt.spec
+*.pptx

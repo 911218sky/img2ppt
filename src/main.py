@@ -52,7 +52,7 @@ def images_to_pptx_keep_original(
 
     image_files = get_image_files(image_dir)
     print(f"Found {len(image_files)} images:")
-    print(image_files)
+    print(f"Sorted: {image_files}")
 
     for img_name in image_files:
         img_path = os.path.join(image_dir, img_name)
