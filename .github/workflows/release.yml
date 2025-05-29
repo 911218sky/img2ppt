@@ -19,7 +19,7 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
 
@@ -45,13 +45,10 @@ jobs:
         pyinstaller --onefile --name img2ppt-macos src/main.py
 
     - name: Upload artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: img2ppt-${{ matrix.os }}
-        path: |
-          dist/img2ppt-windows.exe
-          dist/img2ppt-linux
-          dist/img2ppt-macos
+        path: dist/
 
   release:
     needs: build
@@ -62,17 +59,32 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Download all artifacts
-      uses: actions/download-artifact@v3
+    - name: Download Windows artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: img2ppt-windows-latest
+        path: ./windows-artifacts
+        
+    - name: Download Linux artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: img2ppt-ubuntu-latest
+        path: ./linux-artifacts
+        
+    - name: Download macOS artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: img2ppt-macos-latest
+        path: ./macos-artifacts
       
     - name: Create Release
       id: create_release
-      uses: actions/create-release@v1
+      uses: softprops/action-gh-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: ${{ github.ref_name }}
-        release_name: img2ppt ${{ github.ref_name }}
+        name: img2ppt ${{ github.ref_name }}
         body: |
           ## 📦 img2ppt ${{ github.ref_name }}
           
@@ -94,33 +106,7 @@ jobs:
           ```
         draft: false
         prerelease: false
-
-    - name: Upload Windows executable
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./img2ppt-windows-latest/img2ppt-windows.exe
-        asset_name: img2ppt-windows.exe
-        asset_content_type: application/octet-stream
-
-    - name: Upload Linux executable
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./img2ppt-ubuntu-latest/img2ppt-linux
-        asset_name: img2ppt-linux
-        asset_content_type: application/octet-stream
-
-    - name: Upload macOS executable
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./img2ppt-macos-latest/img2ppt-macos
-        asset_name: img2ppt-macos
-        asset_content_type: application/octet-stream
+        files: |
+          ./windows-artifacts/img2ppt-windows.exe
+          ./linux-artifacts/img2ppt-linux
+          ./macos-artifacts/img2ppt-macos
