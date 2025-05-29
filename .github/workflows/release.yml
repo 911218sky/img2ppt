@@ -29,17 +29,6 @@ jobs:
         pip install pyinstaller
         pip install -r requirements.txt
 
-    - name: Install UPX (Windows only)
-      if: matrix.os == 'windows-latest'
-      run: |
-        choco install upx
-
-    - name: Install UPX (Linux only)
-      if: matrix.os == 'ubuntu-latest'
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y upx
-
     - name: Build executable (Windows)
       if: matrix.os == 'windows-latest'
       run: |
@@ -55,44 +44,11 @@ jobs:
       run: |
         pyinstaller --onefile --name img2ppt-macos src/main.py
 
-    - name: Create UPX compressed versions (Windows & Linux only)
-      if: matrix.os != 'macos-latest'
-      run: |
-        # Create a copy for UPX compression
-        cp -r dist/ dist-upx/
-        
-        # Compress with UPX using default settings
-        if [ "${{ matrix.os }}" = "windows-latest" ]; then
-          upx dist-upx/img2ppt-windows.exe
-          mv dist-upx/img2ppt-windows.exe dist-upx/img2ppt-windows-upx.exe
-        elif [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
-          upx dist-upx/img2ppt-linux
-          mv dist-upx/img2ppt-linux dist-upx/img2ppt-linux-upx
-        fi
-      shell: bash
-
-    - name: Show file sizes
-      run: |
-        echo "=== Original file sizes ==="
-        ls -lh dist/
-        if [ "${{ matrix.os }}" != "macos-latest" ]; then
-          echo "=== UPX compressed file sizes ==="
-          ls -lh dist-upx/
-        fi
-      shell: bash
-
-    - name: Upload original artifacts
+    - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: img2ppt-${{ matrix.os }}-original
+        name: img2ppt-${{ matrix.os }}
         path: dist/
-
-    - name: Upload UPX compressed artifacts (Windows & Linux only)
-      if: matrix.os != 'macos-latest'
-      uses: actions/upload-artifact@v4
-      with:
-        name: img2ppt-${{ matrix.os }}-upx
-        path: dist-upx/
 
   release:
     needs: build
@@ -103,12 +59,26 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       
-    - name: Download all artifacts
+    - name: Download Windows artifacts
       uses: actions/download-artifact@v4
       with:
-        path: ./artifacts
+        name: img2ppt-windows-latest
+        path: ./windows-artifacts
+        
+    - name: Download Linux artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: img2ppt-ubuntu-latest
+        path: ./linux-artifacts
+        
+    - name: Download macOS artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: img2ppt-macos-latest
+        path: ./macos-artifacts
       
     - name: Create Release
+      id: create_release
       uses: softprops/action-gh-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -124,31 +94,19 @@ jobs:
           - Maintains original image resolution
           - Supports multiple image formats (JPG, PNG, GIF, BMP, TIFF)
           
-          ### Download Options
-          
-          #### Standard Version
-          - **Windows**: `img2ppt-windows.exe`
-          - **Linux**: `img2ppt-linux`
-          - **macOS**: `img2ppt-macos`
-          
-          #### UPX Compressed Version (Smaller file size, slightly slower startup)
-          - **Windows**: `img2ppt-windows-upx.exe`
-          - **Linux**: `img2ppt-linux-upx`
-          
-          > 💡 **Note**: UPX compressed versions are available for Windows and Linux only. macOS users should use the standard version due to UPX compatibility issues on macOS.
+          ### Download Instructions
+          - **Windows**: Download `img2ppt-windows.exe`
+          - **Linux**: Download `img2ppt-linux`
+          - **macOS**: Download `img2ppt-macos`
           
           ### Usage
           ```
           # Run the program and follow the prompt to enter the image folder path
           ./img2ppt-windows.exe
-          # or compressed version
-          ./img2ppt-windows-upx.exe
           ```
         draft: false
         prerelease: false
         files: |
-          ./artifacts/img2ppt-windows-latest-original/img2ppt-windows.exe
-          ./artifacts/img2ppt-ubuntu-latest-original/img2ppt-linux
-          ./artifacts/img2ppt-macos-latest-original/img2ppt-macos
-          ./artifacts/img2ppt-windows-latest-upx/img2ppt-windows-upx.exe
-          ./artifacts/img2ppt-ubuntu-latest-upx/img2ppt-linux-upx
+          ./windows-artifacts/img2ppt-windows.exe
+          ./linux-artifacts/img2ppt-linux
+          ./macos-artifacts/img2ppt-macos
